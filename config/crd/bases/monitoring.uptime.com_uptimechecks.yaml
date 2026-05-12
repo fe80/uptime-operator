@@ -14,7 +14,23 @@ spec:
     singular: uptimecheck
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .spec.http.url
+      name: URL
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: Ready
+      type: string
+    - jsonPath: .status.remoteCheckID
+      name: RemoteID
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: UptimeCheck is the Schema for the uptimechecks API
@@ -39,25 +55,124 @@ spec:
           spec:
             description: spec defines the desired state of UptimeCheck
             properties:
-              foo:
-                description: foo is an example field of UptimeCheck. Edit uptimecheck_types.go
-                  to remove/update
+              apiTokenSecretRef:
+                description: |-
+                  apiTokenSecretRef points to a Secret in the same namespace holding the
+                  Uptime.com API token under key "token" (override with .key).
+                properties:
+                  key:
+                    default: token
+                    description: key inside the Secret's data map.
+                    type: string
+                  name:
+                    description: name of the Secret resource.
+                    minLength: 1
+                    type: string
+                required:
+                - name
+                type: object
+              contactGroups:
+                description: contactGroups are Uptime.com contact group names to notify
+                  on alert.
+                items:
+                  type: string
+                type: array
+              http:
+                description: http is the HTTP-specific configuration. Required when
+                  type=HTTP.
+                properties:
+                  encryption:
+                    description: 'encryption: ssl, ssl_verify, or empty for none.
+                      Applies to https URLs.'
+                    enum:
+                    - ""
+                    - ssl
+                    - ssl_verify
+                    type: string
+                  expectString:
+                    description: expectString fails the check if missing from response
+                      body.
+                    type: string
+                  headers:
+                    description: 'headers in "Key: Value" form, one per line.'
+                    type: string
+                  numRetries:
+                    default: 2
+                    description: numRetries before flipping the check to down.
+                    format: int32
+                    maximum: 5
+                    minimum: 0
+                    type: integer
+                  sendString:
+                    description: sendString is sent as the request body.
+                    type: string
+                  statusCode:
+                    default: "200"
+                    description: statusCode is the expected HTTP status (or comma-separated
+                      list).
+                    type: string
+                  threshold:
+                    description: threshold is the response-time threshold in seconds.
+                      0 = no threshold.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  url:
+                    description: url is the full URL to probe (scheme required).
+                    maxLength: 2048
+                    pattern: ^https?://
+                    type: string
+                required:
+                - url
+                type: object
+              interval:
+                default: 60
+                description: interval is the check frequency in seconds.
+                format: int32
+                maximum: 3600
+                minimum: 30
+                type: integer
+              locations:
+                description: |-
+                  locations restricts probing to specific Uptime.com regions
+                  (e.g. "US East", "EU West"). Empty = Uptime.com defaults.
+                items:
+                  type: string
+                type: array
+              name:
+                description: |-
+                  name is the human-friendly check name shown in the Uptime.com UI.
+                  When empty, the operator derives it from "<namespace>/<resource-name>".
+                maxLength: 200
                 type: string
+              paused:
+                description: paused stops the check from running without deleting
+                  it remotely.
+                type: boolean
+              tags:
+                description: |-
+                  tags are extra Uptime.com tags. The operator additionally injects its
+                  own ownership tags - users do not need to manage those.
+                items:
+                  type: string
+                type: array
+              type:
+                description: type selects which transport block (currently only http)
+                  is honored.
+                enum:
+                - HTTP
+                type: string
+            required:
+            - apiTokenSecretRef
+            - type
             type: object
           status:
             description: status defines the observed state of UptimeCheck
             properties:
               conditions:
                 description: |-
-                  conditions represent the current state of the UptimeCheck resource.
-                  Each condition has a unique type and reflects the status of a specific aspect of the resource.
-
-                  Standard condition types include:
-                  - "Available": the resource is fully functional
-                  - "Progressing": the resource is being created or updated
-                  - "Degraded": the resource failed to reach or maintain its desired state
-
-                  The status of each condition is one of True, False, or Unknown.
+                  conditions report the current state of the resource.
+                  Types: Ready (overall health), Synced (last reconcile outcome).
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -116,6 +231,22 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              observedGeneration:
+                description: |-
+                  observedGeneration is the .metadata.generation last successfully
+                  reconciled with the Uptime.com API.
+                format: int64
+                type: integer
+              remoteCheckID:
+                description: |-
+                  remoteCheckID is the Uptime.com primary key for the managed check.
+                  Used to address subsequent update/delete calls without searching.
+                format: int64
+                type: integer
+              remoteCheckURL:
+                description: remoteCheckURL is the Uptime.com API URL of the managed
+                  check.
+                type: string
             type: object
         required:
         - spec

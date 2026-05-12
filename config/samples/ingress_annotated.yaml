@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: checkout-api
+  annotations:
+    monitoring.uptime.com/enabled: "true"
+    monitoring.uptime.com/path: /healthz
+    monitoring.uptime.com/interval: "60"
+    monitoring.uptime.com/expect-status: "200"
+    monitoring.uptime.com/contact-groups: "Default"
+    monitoring.uptime.com/api-token-secret: uptime-token
+spec:
+  rules:
+    - host: api.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: checkout
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - api.example.com
+      secretName: api-example-com-tls

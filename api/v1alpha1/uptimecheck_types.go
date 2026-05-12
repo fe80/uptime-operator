@@ -20,38 +20,146 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// CheckType selects which transport-specific subspec applies. Only HTTP is
+// supported in v1alpha1; the discriminator is in place so DNS, ICMP, Heartbeat,
+// etc. can be added without a breaking apiVersion bump.
+// +kubebuilder:validation:Enum=HTTP
+type CheckType string
 
-// UptimeCheckSpec defines the desired state of UptimeCheck
+const (
+	CheckTypeHTTP CheckType = "HTTP"
+)
+
+// Condition types reported on status.conditions.
+const (
+	ConditionTypeReady  = "Ready"
+	ConditionTypeSynced = "Synced"
+)
+
+// Finalizer ensures the remote check is deleted before the K8s object is.
+const Finalizer = "monitoring.uptime.com/finalizer"
+
+// UptimeCheckSpec is the declarative description of one Uptime.com check.
 type UptimeCheckSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
+	// type selects which transport block (currently only http) is honored.
+	// +kubebuilder:validation:Required
+	Type CheckType `json:"type"`
 
-	// foo is an example field of UptimeCheck. Edit uptimecheck_types.go to remove/update
+	// name is the human-friendly check name shown in the Uptime.com UI.
+	// When empty, the operator derives it from "<namespace>/<resource-name>".
 	// +optional
-	Foo *string `json:"foo,omitempty"`
+	// +kubebuilder:validation:MaxLength=200
+	Name string `json:"name,omitempty"`
+
+	// interval is the check frequency in seconds.
+	// +kubebuilder:default=60
+	// +kubebuilder:validation:Minimum=30
+	// +kubebuilder:validation:Maximum=3600
+	// +optional
+	Interval int32 `json:"interval,omitempty"`
+
+	// locations restricts probing to specific Uptime.com regions
+	// (e.g. "US East", "EU West"). Empty = Uptime.com defaults.
+	// +optional
+	Locations []string `json:"locations,omitempty"`
+
+	// contactGroups are Uptime.com contact group names to notify on alert.
+	// +optional
+	ContactGroups []string `json:"contactGroups,omitempty"`
+
+	// tags are extra Uptime.com tags. The operator additionally injects its
+	// own ownership tags - users do not need to manage those.
+	// +optional
+	Tags []string `json:"tags,omitempty"`
+
+	// apiTokenSecretRef points to a Secret in the same namespace holding the
+	// Uptime.com API token under key "token" (override with .key).
+	// +kubebuilder:validation:Required
+	APITokenSecretRef SecretKeyReference `json:"apiTokenSecretRef"`
+
+	// paused stops the check from running without deleting it remotely.
+	// +optional
+	Paused bool `json:"paused,omitempty"`
+
+	// http is the HTTP-specific configuration. Required when type=HTTP.
+	// +optional
+	HTTP *HTTPSpec `json:"http,omitempty"`
 }
 
-// UptimeCheckStatus defines the observed state of UptimeCheck.
+// SecretKeyReference points at one key inside a same-namespace Secret.
+type SecretKeyReference struct {
+	// name of the Secret resource.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// key inside the Secret's data map.
+	// +kubebuilder:default=token
+	// +optional
+	Key string `json:"key,omitempty"`
+}
+
+// HTTPSpec configures an HTTP/HTTPS check.
+type HTTPSpec struct {
+	// url is the full URL to probe (scheme required).
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern="^https?://"
+	// +kubebuilder:validation:MaxLength=2048
+	URL string `json:"url"`
+
+	// statusCode is the expected HTTP status (or comma-separated list).
+	// +kubebuilder:default="200"
+	// +optional
+	StatusCode string `json:"statusCode,omitempty"`
+
+	// expectString fails the check if missing from response body.
+	// +optional
+	ExpectString string `json:"expectString,omitempty"`
+
+	// sendString is sent as the request body.
+	// +optional
+	SendString string `json:"sendString,omitempty"`
+
+	// headers in "Key: Value" form, one per line.
+	// +optional
+	Headers string `json:"headers,omitempty"`
+
+	// numRetries before flipping the check to down.
+	// +kubebuilder:default=2
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=5
+	// +optional
+	NumRetries int32 `json:"numRetries,omitempty"`
+
+	// encryption: ssl, ssl_verify, or empty for none. Applies to https URLs.
+	// +kubebuilder:validation:Enum="";ssl;ssl_verify
+	// +optional
+	Encryption string `json:"encryption,omitempty"`
+
+	// threshold is the response-time threshold in seconds. 0 = no threshold.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	Threshold int32 `json:"threshold,omitempty"`
+}
+
+// UptimeCheckStatus is the observed state of an UptimeCheck.
 type UptimeCheckStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// observedGeneration is the .metadata.generation last successfully
+	// reconciled with the Uptime.com API.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// For Kubernetes API conventions, see:
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+	// remoteCheckID is the Uptime.com primary key for the managed check.
+	// Used to address subsequent update/delete calls without searching.
+	// +optional
+	RemoteCheckID int64 `json:"remoteCheckID,omitempty"`
 
-	// conditions represent the current state of the UptimeCheck resource.
-	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
-	//
-	// Standard condition types include:
-	// - "Available": the resource is fully functional
-	// - "Progressing": the resource is being created or updated
-	// - "Degraded": the resource failed to reach or maintain its desired state
-	//
-	// The status of each condition is one of True, False, or Unknown.
+	// remoteCheckURL is the Uptime.com API URL of the managed check.
+	// +optional
+	RemoteCheckURL string `json:"remoteCheckURL,omitempty"`
+
+	// conditions report the current state of the resource.
+	// Types: Ready (overall health), Synced (last reconcile outcome).
 	// +listType=map
 	// +listMapKey=type
 	// +optional
@@ -60,6 +168,11 @@ type UptimeCheckStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=".spec.type"
+// +kubebuilder:printcolumn:name="URL",type=string,JSONPath=".spec.http.url"
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=".status.conditions[?(@.type=='Ready')].status"
+// +kubebuilder:printcolumn:name="RemoteID",type=integer,JSONPath=".status.remoteCheckID"
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
 
 // UptimeCheck is the Schema for the uptimechecks API
 type UptimeCheck struct {

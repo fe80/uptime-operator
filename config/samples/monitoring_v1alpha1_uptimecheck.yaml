@@ -1,9 +1,29 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: uptime-token
+type: Opaque
+stringData:
+  token: REPLACE_WITH_UPTIME_COM_API_TOKEN
+---
 apiVersion: monitoring.uptime.com/v1alpha1
 kind: UptimeCheck
 metadata:
   labels:
     app.kubernetes.io/name: uptime-k8s-operator
-    app.kubernetes.io/managed-by: kustomize
-  name: uptimecheck-sample
+  name: example-health
 spec:
-  # TODO(user): Add fields here
+  type: HTTP
+  interval: 60
+  contactGroups:
+    - Default
+  tags:
+    - example
+  apiTokenSecretRef:
+    name: uptime-token
+    key: token
+  http:
+    url: https://example.com/healthz
+    statusCode: "200"
+    encryption: ssl_verify
+    numRetries: 2
