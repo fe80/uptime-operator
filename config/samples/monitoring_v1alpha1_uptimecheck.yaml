@@ -1,0 +1,9 @@
+apiVersion: monitoring.uptime.com/v1alpha1
+kind: UptimeCheck
+metadata:
+  labels:
+    app.kubernetes.io/name: uptime-k8s-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: uptimecheck-sample
+spec:
+  # TODO(user): Add fields here

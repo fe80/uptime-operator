@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - monitoring.uptime.com
+  resources:
+  - uptimechecks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.uptime.com
+  resources:
+  - uptimechecks/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - monitoring.uptime.com
+  resources:
+  - uptimechecks/status
+  verbs:
+  - get
+  - patch
+  - update
