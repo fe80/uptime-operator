@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	monitoringv1alpha1 "github.com/uptime-com/uptime-k8s-operator/api/v1alpha1"
+	monitoringv1alpha1 "github.com/uptime-com/uptime-operator/api/v1alpha1"
 )
 
 // Ingress annotation keys. Prefixed with the operator's API group so the

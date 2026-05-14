@@ -10,7 +10,7 @@ apiVersion: monitoring.uptime.com/v1alpha1
 kind: UptimeCheck
 metadata:
   labels:
-    app.kubernetes.io/name: uptime-k8s-operator
+    app.kubernetes.io/name: uptime-operator
   name: example-health
 spec:
   type: HTTP

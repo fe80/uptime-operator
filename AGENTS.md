@@ -1,4 +1,4 @@
-# uptime-k8s-operator - AI Agent Guide
+# uptime-operator - AI Agent Guide
 
 ## Project Structure
 

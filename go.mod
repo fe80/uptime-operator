@@ -1,4 +1,4 @@
-module github.com/uptime-com/uptime-k8s-operator
+module github.com/uptime-com/uptime-operator
 
 go 1.25.7
 

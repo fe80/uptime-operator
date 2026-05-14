@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# End-to-end smoke test for the uptime-k8s-operator against a live cluster
+# End-to-end smoke test for the uptime-operator against a live cluster
 # (k3s via $KUBECONFIG) and the Uptime.com sandbox API
 # (https://sandbox.upeks.net).
 #

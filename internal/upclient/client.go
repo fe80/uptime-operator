@@ -56,7 +56,7 @@ func NewFromSecret(
 
 	opts := []upapi.Option{
 		upapi.WithToken(string(token)),
-		upapi.WithUserAgent("uptime-k8s-operator"),
+		upapi.WithUserAgent("uptime-operator"),
 	}
 	if baseURL != "" {
 		opts = append(opts, upapi.WithBaseURL(baseURL))

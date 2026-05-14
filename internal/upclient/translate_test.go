@@ -17,7 +17,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	monitoringv1alpha1 "github.com/uptime-com/uptime-k8s-operator/api/v1alpha1"
+	monitoringv1alpha1 "github.com/uptime-com/uptime-operator/api/v1alpha1"
 )
 
 func TestToCheckHTTP_ContactGroupsAlwaysPresent(t *testing.T) {

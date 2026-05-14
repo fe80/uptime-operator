@@ -33,8 +33,8 @@ import (
 
 	"github.com/uptime-com/uptime-client-go/v2/pkg/upapi"
 
-	monitoringv1alpha1 "github.com/uptime-com/uptime-k8s-operator/api/v1alpha1"
-	"github.com/uptime-com/uptime-k8s-operator/internal/upclient"
+	monitoringv1alpha1 "github.com/uptime-com/uptime-operator/api/v1alpha1"
+	"github.com/uptime-com/uptime-operator/internal/upclient"
 )
 
 // requeueAfterError is the retry delay for transient failures (network, 5xx).

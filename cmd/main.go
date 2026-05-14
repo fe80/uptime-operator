@@ -35,8 +35,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	monitoringv1alpha1 "github.com/uptime-com/uptime-k8s-operator/api/v1alpha1"
-	"github.com/uptime-com/uptime-k8s-operator/internal/controller"
+	monitoringv1alpha1 "github.com/uptime-com/uptime-operator/api/v1alpha1"
+	"github.com/uptime-com/uptime-operator/internal/controller"
 	// +kubebuilder:scaffold:imports
 )
 

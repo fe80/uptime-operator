@@ -15,7 +15,7 @@ import (
 
 	"github.com/uptime-com/uptime-client-go/v2/pkg/upapi"
 
-	monitoringv1alpha1 "github.com/uptime-com/uptime-k8s-operator/api/v1alpha1"
+	monitoringv1alpha1 "github.com/uptime-com/uptime-operator/api/v1alpha1"
 )
 
 // ToCheckHTTP converts the operator's UptimeCheck spec into the SDK's
