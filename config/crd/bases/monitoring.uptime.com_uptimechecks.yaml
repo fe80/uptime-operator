@@ -71,6 +71,14 @@ spec:
                 required:
                 - name
                 type: object
+              apiURL:
+                description: |-
+                  apiURL overrides the Uptime.com API base URL. Defaults to
+                  https://uptime.com/api/v1/. Useful for pointing the operator at the
+                  sandbox or a self-hosted instance. Must end with /api/v1/.
+                maxLength: 2048
+                pattern: ^https?://.+/api/v1/?$
+                type: string
               contactGroups:
                 description: contactGroups are Uptime.com contact group names to notify
                   on alert.

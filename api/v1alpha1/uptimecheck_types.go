@@ -77,6 +77,14 @@ type UptimeCheckSpec struct {
 	// +kubebuilder:validation:Required
 	APITokenSecretRef SecretKeyReference `json:"apiTokenSecretRef"`
 
+	// apiURL overrides the Uptime.com API base URL. Defaults to
+	// https://uptime.com/api/v1/. Useful for pointing the operator at the
+	// sandbox or a self-hosted instance. Must end with /api/v1/.
+	// +optional
+	// +kubebuilder:validation:Pattern="^https?://.+/api/v1/?$"
+	// +kubebuilder:validation:MaxLength=2048
+	APIURL string `json:"apiURL,omitempty"`
+
 	// paused stops the check from running without deleting it remotely.
 	// +optional
 	Paused bool `json:"paused,omitempty"`

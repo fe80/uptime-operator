@@ -47,7 +47,7 @@ type UptimeCheckReconciler struct {
 
 	// NewAPI is the API factory; tests inject a fake. Production uses
 	// upclient.NewFromSecret.
-	NewAPI func(ctx context.Context, c client.Client, namespace, secret, key string) (upapi.API, error)
+	NewAPI func(ctx context.Context, c client.Client, namespace, secret, key, baseURL string) (upapi.API, error)
 }
 
 // +kubebuilder:rbac:groups=monitoring.uptime.com,resources=uptimechecks,verbs=get;list;watch;create;update;patch;delete
@@ -173,14 +173,20 @@ func (r *UptimeCheckReconciler) reconcileDelete(
 }
 
 func (r *UptimeCheckReconciler) apiFor(ctx context.Context, cr *monitoringv1alpha1.UptimeCheck) (upapi.API, error) {
-	return r.NewAPI(ctx, r.Client, cr.Namespace, cr.Spec.APITokenSecretRef.Name, cr.Spec.APITokenSecretRef.Key)
+	return r.NewAPI(
+		ctx, r.Client,
+		cr.Namespace,
+		cr.Spec.APITokenSecretRef.Name,
+		cr.Spec.APITokenSecretRef.Key,
+		cr.Spec.APIURL,
+	)
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *UptimeCheckReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if r.NewAPI == nil {
-		r.NewAPI = func(ctx context.Context, c client.Client, ns, secret, key string) (upapi.API, error) {
-			return upclient.NewFromSecret(ctx, c, ns, secret, key)
+		r.NewAPI = func(ctx context.Context, c client.Client, ns, secret, key, baseURL string) (upapi.API, error) {
+			return upclient.NewFromSecret(ctx, c, ns, secret, key, baseURL)
 		}
 	}
 	return ctrl.NewControllerManagedBy(mgr).

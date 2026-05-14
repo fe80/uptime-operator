@@ -19,7 +19,10 @@ import (
 )
 
 // ToCheckHTTP converts the operator's UptimeCheck spec into the SDK's
-// CheckHTTP payload, injecting the operator's ownership tag.
+// CheckHTTP payload. Note: Uptime.com does not auto-create tags - any tag
+// listed here must already exist in the account or the API rejects the
+// request. We therefore pass tags through verbatim; ownership is tracked
+// via status.remoteCheckID on the CR.
 func ToCheckHTTP(cr *monitoringv1alpha1.UptimeCheck) (upapi.CheckHTTP, error) {
 	if cr.Spec.HTTP == nil {
 		return upapi.CheckHTTP{}, fmt.Errorf("spec.http is required when type=%s", cr.Spec.Type)
@@ -31,14 +34,13 @@ func ToCheckHTTP(cr *monitoringv1alpha1.UptimeCheck) (upapi.CheckHTTP, error) {
 	}
 
 	paused := cr.Spec.Paused
-	tags := mergeTags(OwnershipTag, cr.Spec.Tags)
 
 	out := upapi.CheckHTTP{
 		Name:         name,
 		Address:      cr.Spec.HTTP.URL,
 		Interval:     int64(cr.Spec.Interval),
 		Locations:    cr.Spec.Locations,
-		Tags:         tags,
+		Tags:         append([]string(nil), cr.Spec.Tags...),
 		IsPaused:     &paused,
 		StatusCode:   cr.Spec.HTTP.StatusCode,
 		SendString:   cr.Spec.HTTP.SendString,
@@ -53,24 +55,11 @@ func ToCheckHTTP(cr *monitoringv1alpha1.UptimeCheck) (upapi.CheckHTTP, error) {
 		out.Encryption = &enc
 	}
 
-	if len(cr.Spec.ContactGroups) > 0 {
-		cg := append([]string(nil), cr.Spec.ContactGroups...)
-		out.ContactGroups = &cg
-	}
+	// contact_groups is required by the API; always send a non-nil slice so
+	// the JSON field is present even when the user supplied none.
+	cg := make([]string, 0, len(cr.Spec.ContactGroups))
+	cg = append(cg, cr.Spec.ContactGroups...)
+	out.ContactGroups = &cg
 
 	return out, nil
-}
-
-// mergeTags returns required + extra, deduped, with required first.
-func mergeTags(required string, extra []string) []string {
-	out := []string{required}
-	seen := map[string]struct{}{required: {}}
-	for _, t := range extra {
-		if _, ok := seen[t]; ok || t == "" {
-			continue
-		}
-		seen[t] = struct{}{}
-		out = append(out, t)
-	}
-	return out
 }

@@ -25,11 +25,6 @@ import (
 	"github.com/uptime-com/uptime-client-go/v2/pkg/upapi"
 )
 
-// OwnershipTag is attached to every check the operator creates so a tagged
-// List() call surfaces only operator-managed resources. Treated as a safety
-// net; primary identity is status.remoteCheckID on the CR.
-const OwnershipTag = "k8s-operator"
-
 const defaultTokenKey = "token"
 
 // ErrMissingToken is returned when the Secret exists but the configured key
@@ -38,10 +33,11 @@ var ErrMissingToken = errors.New("api token secret key is empty or missing")
 
 // NewFromSecret resolves the API token from a Secret and returns a configured
 // uptime-client-go API. The namespace is the namespace of the owning CR.
+// When baseURL is non-empty it overrides the SDK default (https://uptime.com/api/v1/).
 func NewFromSecret(
 	ctx context.Context,
 	kube client.Client,
-	namespace, secretName, secretKey string,
+	namespace, secretName, secretKey, baseURL string,
 	extraOpts ...upapi.Option,
 ) (upapi.API, error) {
 	if secretKey == "" {
@@ -58,10 +54,14 @@ func NewFromSecret(
 		return nil, fmt.Errorf("%w: secret=%s/%s key=%s", ErrMissingToken, namespace, secretName, secretKey)
 	}
 
-	opts := append([]upapi.Option{
+	opts := []upapi.Option{
 		upapi.WithToken(string(token)),
 		upapi.WithUserAgent("uptime-k8s-operator"),
-	}, extraOpts...)
+	}
+	if baseURL != "" {
+		opts = append(opts, upapi.WithBaseURL(baseURL))
+	}
+	opts = append(opts, extraOpts...)
 
 	return upapi.New(opts...)
 }

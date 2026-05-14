@@ -69,7 +69,7 @@ var _ = Describe("UptimeCheck Controller", func() {
 		reconciler := &UptimeCheckReconciler{
 			Client: k8sClient,
 			Scheme: k8sClient.Scheme(),
-			NewAPI: func(context.Context, client.Client, string, string, string) (upapi.API, error) {
+			NewAPI: func(context.Context, client.Client, string, string, string, string) (upapi.API, error) {
 				apiCalls++
 				return nil, errors.New("should not be called before finalizer is added")
 			},
@@ -103,7 +103,7 @@ var _ = Describe("UptimeCheck Controller", func() {
 		reconciler := &UptimeCheckReconciler{
 			Client: k8sClient,
 			Scheme: k8sClient.Scheme(),
-			NewAPI: func(context.Context, client.Client, string, string, string) (upapi.API, error) {
+			NewAPI: func(context.Context, client.Client, string, string, string, string) (upapi.API, error) {
 				return nil, errors.New("secret not found")
 			},
 		}
