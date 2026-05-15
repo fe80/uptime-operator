@@ -142,11 +142,11 @@ spec:
                 - url
                 type: object
               interval:
-                default: 60
-                description: interval is the check frequency in seconds.
+                default: 5
+                description: interval is the check frequency in minutes.
                 format: int32
-                maximum: 3600
-                minimum: 30
+                maximum: 1440
+                minimum: 3
                 type: integer
               locations:
                 description: |-

@@ -5,10 +5,13 @@ metadata:
   annotations:
     monitoring.uptime.com/enabled: "true"
     monitoring.uptime.com/path: /healthz
-    monitoring.uptime.com/interval: "60"
+    monitoring.uptime.com/interval: "5"
     monitoring.uptime.com/expect-status: "200"
     monitoring.uptime.com/contact-groups: "Default"
     monitoring.uptime.com/api-token-secret: uptime-token
+    # locations is required by the Uptime.com API. Comma-separated probe location
+    # names from /api/v1/probe-servers/.
+    monitoring.uptime.com/locations: "US-NY-New York,US-CA-Los Angeles,US-TX-Dallas,United Kingdom-London,Austria-Vienna"
 spec:
   rules:
     - host: api.example.com

@@ -70,8 +70,14 @@ metadata:
   name: example-health
 spec:
   type: HTTP
-  interval: 60
+  interval: 5
   contactGroups: [Default]
+  locations:
+    - US-NY-New York
+    - US-CA-Los Angeles
+    - US-TX-Dallas
+    - United Kingdom-London
+    - Austria-Vienna
   apiTokenSecretRef:
     name: uptime-token
     key: token
@@ -80,6 +86,12 @@ spec:
     statusCode: "200"
     encryption: ssl_verify
 ```
+
+`spec.locations` is required by the Uptime.com API - the call fails with a
+`VALIDATION_ERROR` if it's empty. Pick at least one probe location name from
+`GET /api/v1/probe-servers/`. The five locations above are a reasonable default
+spread (US east/west/central, UK, Austria); adjust to match your account's
+plan.
 
 Set `spec.apiURL` to point at a non-production Uptime.com instance, e.g. the sandbox.
 

@@ -51,10 +51,10 @@ type UptimeCheckSpec struct {
 	// +kubebuilder:validation:MaxLength=200
 	Name string `json:"name,omitempty"`
 
-	// interval is the check frequency in seconds.
-	// +kubebuilder:default=60
-	// +kubebuilder:validation:Minimum=30
-	// +kubebuilder:validation:Maximum=3600
+	// interval is the check frequency in minutes.
+	// +kubebuilder:default=5
+	// +kubebuilder:validation:Minimum=3
+	// +kubebuilder:validation:Maximum=1440
 	// +optional
 	Interval int32 `json:"interval,omitempty"`
 

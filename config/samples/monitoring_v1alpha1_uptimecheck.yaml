@@ -14,9 +14,18 @@ metadata:
   name: example-health
 spec:
   type: HTTP
-  interval: 60
+  interval: 5
   contactGroups:
     - Default
+  # locations is required by the Uptime.com API. Pick at least one probe
+  # location name from /api/v1/probe-servers/. The list below is a good default
+  # spread across the US, UK, and Austria.
+  locations:
+    - US-NY-New York
+    - US-CA-Los Angeles
+    - US-TX-Dallas
+    - United Kingdom-London
+    - Austria-Vienna
   tags:
     - example
   apiTokenSecretRef:
