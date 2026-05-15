@@ -3,8 +3,11 @@ name: uptime-operator
 description: A Helm chart to distribute uptime-operator
 type: application
 
-version: 0.1.0
-appVersion: "0.1.0"
+# Placeholders; release.yml stamps real values via `helm package --version $TAG --app-version $TAG`.
+# `kubebuilder edit --plugins=helm/v2-alpha --force` regenerates this file and will overwrite these
+# back to the plugin defaults - restore the `0.0.0-dev` placeholders after running it.
+version: 0.0.0-dev
+appVersion: "0.0.0-dev"
 
 keywords:
   - kubernetes
