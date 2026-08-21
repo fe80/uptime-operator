@@ -19,7 +19,9 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"os"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -52,6 +54,37 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+// envOr returns the value of the named environment variable, or def when it is
+// unset or empty. Used to let env vars seed flag defaults.
+func envOr(name, def string) string {
+	if v := os.Getenv(name); v != "" {
+		return v
+	}
+	return def
+}
+
+// serviceAccountNamespaceFile is where kubelet projects the Pod's namespace.
+const serviceAccountNamespaceFile = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+
+// operatorNamespace returns the namespace the operator runs in, from the
+// POD_NAMESPACE downward-API env var, falling back to the projected service
+// account namespace. Running outside a cluster (e.g. `make run`) requires
+// POD_NAMESPACE to be set explicitly.
+func operatorNamespace() (string, error) {
+	if ns := strings.TrimSpace(os.Getenv("POD_NAMESPACE")); ns != "" {
+		return ns, nil
+	}
+	data, err := os.ReadFile(serviceAccountNamespaceFile)
+	if err != nil {
+		return "", fmt.Errorf("POD_NAMESPACE is unset and %s is unreadable: %w", serviceAccountNamespaceFile, err)
+	}
+	ns := strings.TrimSpace(string(data))
+	if ns == "" {
+		return "", fmt.Errorf("POD_NAMESPACE is unset and %s is empty", serviceAccountNamespaceFile)
+	}
+	return ns, nil
+}
+
 // nolint:gocyclo
 func main() {
 	var metricsAddr string
@@ -61,6 +94,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var defaultTokenSecretName, defaultTokenSecretKey string
 	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -79,6 +113,13 @@ func main() {
 	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.StringVar(&defaultTokenSecretName, "default-api-token-secret-name",
+		envOr("DEFAULT_API_TOKEN_SECRET_NAME", ""),
+		"Name of the Secret holding the Uptime.com API token used by UptimeCheck resources "+
+			"that do not set spec.apiTokenSecretRef. Empty disables the fallback.")
+	flag.StringVar(&defaultTokenSecretKey, "default-api-token-secret-key",
+		envOr("DEFAULT_API_TOKEN_SECRET_KEY", "token"),
+		"Key inside the default API token Secret.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -178,9 +219,30 @@ func main() {
 		os.Exit(1)
 	}
 
+	// The default token Secret is always read from the operator's own namespace;
+	// it is deliberately not configurable per namespace.
+	var defaultTokenSecret controller.DefaultTokenSecret
+	if defaultTokenSecretName == "" {
+		setupLog.Info("No default API token Secret configured; every UptimeCheck must set spec.apiTokenSecretRef")
+	} else {
+		namespace, err := operatorNamespace()
+		if err != nil {
+			setupLog.Error(err, "Could not determine the operator namespace holding the default API token Secret")
+			os.Exit(1)
+		}
+		defaultTokenSecret = controller.DefaultTokenSecret{
+			Namespace: namespace,
+			Name:      defaultTokenSecretName,
+			Key:       defaultTokenSecretKey,
+		}
+		setupLog.Info("Using default API token Secret",
+			"namespace", namespace, "name", defaultTokenSecretName, "key", defaultTokenSecretKey)
+	}
+
 	if err := (&controller.UptimeCheckReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		DefaultTokenSecret: defaultTokenSecret,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "uptimecheck")
 		os.Exit(1)
